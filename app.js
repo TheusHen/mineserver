@@ -59,4 +59,4 @@ process.on('SIGINT', async () => {
   process.exit(0)
 })
 
-module.exports.handler = serverless(app)
+module.exports = serverless(app)
