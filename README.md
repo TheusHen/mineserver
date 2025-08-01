@@ -1,17 +1,17 @@
 # Mineserver
 
-A Fastify-based API server for managing Minecraft server subdomains using Cloudflare DNS.
+An Express-based API server to manage Minecraft server subdomains using Cloudflare DNS.
 
 ## Description
 
-Mineserver is a backend service that allows users to authenticate with GitHub and create subdomains for their Minecraft servers. It manages DNS records through the Cloudflare API and stores user data in MongoDB.
+Mineserver is a backend service that allows users to authenticate via GitHub and create subdomains for their Minecraft servers. It manages DNS records via the Cloudflare API and stores user data in MongoDB.
 
 ## Features
 
 - GitHub OAuth authentication
-- Automatic subdomain creation and management via Cloudflare
+- Automatic creation and management of subdomains via Cloudflare
 - User management with MongoDB
-- Server status checking
+- Server status verification
 - Automatic cleanup of inactive GitHub users
 
 ## Prerequisites
@@ -34,19 +34,22 @@ Mineserver is a backend service that allows users to authenticate with GitHub an
    npm install
    ```
 
-3. Create a `.env` file in the root directory with the following variables:
+3. Create a `.env` file in the root with the following variables:
    ```
-   MONGODB_URI=mongodb://localhost:27017/mineflared
-   CLOUDFLARE_API_TOKEN=your_cloudflare_api_token
+   MONGO_URI=mongodb://localhost:27017
+   MONGODB_DATABASE_NAME=mineflared
+   CLOUDFLARE_API_TOKEN=your_cloudflare_token
    CLOUDFLARE_ZONE_ID=your_cloudflare_zone_id
    GITHUB_CLIENT_ID=your_github_client_id
    GITHUB_CLIENT_SECRET=your_github_client_secret
    JWT_SECRET=your_jwt_secret
-   JWT_EXPIRATION=
-   CLOUDFLARE_TTL=
+   JWT_EXPIRATION=1d
+   CLOUDFLARE_TTL=120
    CLOUDFLARE_PROXIED=true
+   DOMAIN=mineflared.theushen.me
    GITHUB_API_URL=https://api.github.com
-   GITHUB_OAUTH_URL=https://github.com/login/oauth/access_token
+   GITHUB_OAUTH_URL=https://github.com/login/oauth
+   PORT=3000
    ```
 
 ## Running the Application
@@ -67,21 +70,22 @@ npm start
 
 ### Authentication
 
+- `GET /auth/github/login` - Redirects to GitHub login
 - `GET /auth/github/callback` - GitHub OAuth callback
 
 ### User Management
 
-- `GET /api/user` - Get current user information
-- `DELETE /delete` - Delete user account and DNS records
+- `GET /api/user` - Get authenticated user information
+- `DELETE /delete` - Remove user account and DNS records
 
 ### DNS Management
 
-- `POST /create` - Create or update a subdomain
+- `POST /create` - Create or update subdomain
 - `GET /status` - Check server status
 
-## Testing
+## Tests
 
-Run the tests with:
+Run tests with:
 
 ```
 npm test

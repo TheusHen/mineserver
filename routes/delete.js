@@ -1,37 +1,26 @@
 'use strict'
 
-const jwt = require('jsonwebtoken');
-const { removeSubdomain } = require('../utils/cloudflare');
+const cors = require('../middlewares/cors')
+const authenticate = require('../middlewares/auth')
+const ipMatch = require('../middlewares/ip-match')
+const { removeSubdomain } = require('../utils/cloudflare')
 
-module.exports = async function (fastify, opts) {
-    fastify.delete('/delete', async (request, reply) => {
-        const authHeader = request.headers.authorization;
-
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return reply.code(401).send({ error: 'Token missing' });
-        }
-
-        const token = authHeader.split(' ')[1];
-
-        let payload;
+module.exports = function (app) {
+    app.delete('/delete', cors(), authenticate, async (req, res, next) => {
+        const db = app.locals.mongo.db(process.env.MONGODB_DATABASE_NAME)
+        const user = await db.collection('users').findOne({ username: req.jwtPayload.username })
+        if (!user) return res.status(404).send({ error: 'User not found' })
+        req.user = user
+        next()
+    }, ipMatch, async (req, res) => {
+        const db = app.locals.mongo.db(process.env.MONGODB_DATABASE_NAME)
+        const username = req.user.username
         try {
-            payload = jwt.verify(token, process.env.JWT_SECRET);
+            await removeSubdomain(username)
+            await db.collection('users').deleteOne({ username })
+            return res.send({ success: true, message: `All data for ${username} has been deleted.` })
         } catch (err) {
-            return reply.code(401).send({ error: 'Invalid token' });
+            return res.status(500).send({ error: err.message })
         }
-
-        const username = payload.username;
-        if (!username) {
-            return reply.code(400).send({ error: 'Username missing' });
-        }
-
-        try {
-            const db = fastify.mongo.client.db('mineflared');
-            await removeSubdomain(username);
-            await db.collection('users').deleteOne({ username });
-            return reply.send({ success: true, message: `All data for ${username} has been deleted.` });
-        } catch (err) {
-            return reply.code(500).send({ error: err.message });
-        }
-    });
+    })
 }

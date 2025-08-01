@@ -1,7 +1,9 @@
 'use strict'
 
-module.exports = async function (fastify, opts) {
-    fastify.get('/', async (request, reply) => {
+const cors = require('../middlewares/cors')
+
+module.exports = function (app) {
+    app.get('/', cors({ public: true }), async (req, res) => {
         await new Promise(() => {})
     })
 }

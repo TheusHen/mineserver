@@ -1,33 +1,35 @@
 'use strict'
 
+const cors = require('../middlewares/cors')
 const axios = require('axios')
 
+const DOMAIN = process.env.DOMAIN
 const CLOUDFLARE_API_TOKEN = process.env.CLOUDFLARE_API_TOKEN
 const CLOUDFLARE_ZONE_ID = process.env.CLOUDFLARE_ZONE_ID
-const DOMAIN = 'mineflared.theushen.me'
 
-module.exports = async function (fastify, opts) {
-  fastify.get('/status', async (request, reply) => {
+module.exports = function (app) {
+  app.get('/status', cors(), async (req, res) => {
+    const origin = req.headers.origin
+    if (!origin || origin !== 'https://mineflared.theushen.me') {
+      return res.status(403).send({ error: 'Forbidden' })
+    }
+
+    const username = req.query.username || (req.body && req.body.username)
+    if (!username) {
+      return res.status(400).send({ error: 'Parameter "username" is required' })
+    }
+
+    const db = app.locals.mongo.db(process.env.MONGODB_DATABASE_NAME)
+    const user = await db.collection('users').findOne({ username })
+
+    if (!user) return res.status(404).send({ status: 'offline', message: 'User not found' })
+    if (!user.ip) return res.status(404).send({ status: 'offline', message: 'User IP not registered' })
+
+    const subdomain = `${username}.${DOMAIN}`
+
+    let response
     try {
-      const username = request.query.username || (request.body && request.body.username)
-      if (!username) {
-        return reply.code(400).send({ error: 'Parameter "username" is required' })
-      }
-
-      const db = fastify.mongo.client.db('mineflared')
-      const user = await db.collection('users').findOne({ username })
-
-      if (!user) {
-        return reply.code(404).send({ status: 'offline', message: 'User not found' })
-      }
-
-      if (!user.ip) {
-        return reply.code(404).send({ status: 'offline', message: 'User IP not registered' })
-      }
-
-      const subdomain = `${username}.${DOMAIN}`
-
-      const response = await axios.get(
+      response = await axios.get(
           `https://api.cloudflare.com/client/v4/zones/${CLOUDFLARE_ZONE_ID}/dns_records`,
           {
             headers: {
@@ -40,27 +42,26 @@ module.exports = async function (fastify, opts) {
             }
           }
       )
-
-      if (!response.data.success) {
-        return reply.code(500).send({ error: 'Error querying DNS in Cloudflare' })
-      }
-
-      const records = response.data.result
-
-      if (records.length === 0) {
-        return reply.code(404).send({ status: 'offline', message: 'DNS not found for user' })
-      }
-
-      const dnsIP = records[0].content
-      const status = dnsIP === user.ip ? 'online' : 'offline'
-
-      return reply.send({
-        status,
-        message: status === 'online' ? 'Server online and DNS configured correctly' : 'Server offline or DNS mismatch'
-      })
     } catch (err) {
-      fastify.log.error(err)
-      return reply.code(500).send({ error: 'Internal server error' })
+      return res.status(500).send({ error: 'Error querying DNS in Cloudflare' })
     }
+
+    if (!response.data.success) {
+      return res.status(500).send({ error: 'Error querying DNS in Cloudflare' })
+    }
+
+    const records = response.data.result
+
+    if (records.length === 0) {
+      return res.status(404).send({ status: 'offline', message: 'DNS not found for user' })
+    }
+
+    const dnsIP = records[0].content
+    const status = dnsIP === user.ip ? 'online' : 'offline'
+
+    return res.send({
+      status,
+      message: status === 'online' ? 'Server online and DNS configured correctly' : 'Server offline or DNS mismatch'
+    })
   })
 }

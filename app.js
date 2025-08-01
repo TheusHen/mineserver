@@ -1,39 +1,56 @@
 'use strict'
 
 require('dotenv').config()
-const path = require('node:path')
-const AutoLoad = require('@fastify/autoload')
+const express = require('express')
+const bodyParser = require('body-parser')
 const { MongoClient } = require('mongodb')
-
-const options = {}
-
 const { startGithubCleanupJob } = require('./jobs/github-cleanup')
 
-module.exports = async function (fastify, opts) {
-  const mongoClient = new MongoClient(process.env.MONGO_URI || 'mongodb://localhost:27017')
-  await mongoClient.connect()
+const app = express()
+app.use(bodyParser.json())
 
-  fastify.decorate('mongo', { client: mongoClient })
+app.use((req, res, next) => {
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(204)
+  } else {
+    next()
+  }
+})
 
-  fastify.addHook('onReady', async () => {
-    if (fastify.mongo && fastify.mongo.client) {
-      const db = fastify.mongo.client.db(process.env.MONGODB_DATABASE_NAME)
-      startGithubCleanupJob(db)
-    } else {
-      fastify.log.warn('MongoDB not initialized, cleanup job will not start.')
-    }
-  })
+const mongoClient = new MongoClient(process.env.MONGO_URI || 'mongodb://localhost:27017', {
+  tls: true,
+  minTLSVersion: 'TLS1_2',
+})
 
-  fastify.register(AutoLoad, {
-    dir: path.join(__dirname, 'routes'),
-    options: Object.assign({}, opts)
-  })
+async function start() {
+  try {
+    await mongoClient.connect()
+    app.locals.mongo = mongoClient
+    const db = mongoClient.db(process.env.MONGODB_DATABASE_NAME)
+    startGithubCleanupJob(db)
+    console.log('MongoDB connected and cleanup job started.')
 
-  fastify.addHook('onClose', async (instance) => {
-    if (instance.mongo && instance.mongo.client) {
-      await instance.mongo.client.close()
-    }
-  })
+    require('./routes/auth')(app)
+    require('./routes/delete')(app)
+    require('./routes/dns')(app)
+    require('./routes/status')(app)
+    require('./routes/user')(app)
+    require('./routes/root')(app)
+
+    const PORT = process.env.PORT || 3000
+    app.listen(PORT, () => {
+      console.log(`Express server running on port ${PORT}`)
+    })
+
+  } catch (err) {
+    console.error('Error connecting to MongoDB:', err)
+    process.exit(1)
+  }
 }
 
-module.exports.options = options
+start()
+
+process.on('SIGINT', async () => {
+  if (mongoClient) await mongoClient.close()
+  process.exit(0)
+})
