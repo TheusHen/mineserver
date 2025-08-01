@@ -4,6 +4,7 @@ require('dotenv').config()
 const express = require('express')
 const bodyParser = require('body-parser')
 const { MongoClient } = require('mongodb')
+const serverless = require('serverless-http')
 const { startGithubCleanupJob } = require('./jobs/github-cleanup')
 
 const app = express()
@@ -18,14 +19,16 @@ app.use((req, res, next) => {
 })
 
 const mongoClient = new MongoClient(process.env.MONGO_URI || 'mongodb://localhost:27017', {
-  tls: true,
+  tls: true
 })
 
-async function start() {
+let db
+
+async function init() {
   try {
     await mongoClient.connect()
     app.locals.mongo = mongoClient
-    const db = mongoClient.db(process.env.MONGODB_DATABASE_NAME)
+    db = mongoClient.db(process.env.MONGODB_DATABASE_NAME)
     startGithubCleanupJob(db)
     console.log('MongoDB connected and cleanup job started.')
 
@@ -36,10 +39,12 @@ async function start() {
     require('./routes/user')(app)
     require('./routes/root')(app)
 
-    const PORT = process.env.PORT || 3000
-    app.listen(PORT, () => {
-      console.log(`Express server running on port ${PORT}`)
-    })
+    if (process.env.IS_LOCAL === 'true') {
+      const PORT = process.env.PORT || 3000
+      app.listen(PORT, () => {
+        console.log(`Express server running on port ${PORT}`)
+      })
+    }
 
   } catch (err) {
     console.error('Error connecting to MongoDB:', err)
@@ -47,9 +52,11 @@ async function start() {
   }
 }
 
-start()
+init()
 
 process.on('SIGINT', async () => {
   if (mongoClient) await mongoClient.close()
   process.exit(0)
 })
+
+module.exports.handler = serverless(app)
