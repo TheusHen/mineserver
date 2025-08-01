@@ -19,7 +19,6 @@ app.use((req, res, next) => {
 
 const mongoClient = new MongoClient(process.env.MONGO_URI || 'mongodb://localhost:27017', {
   tls: true,
-  minTLSVersion: 'TLS1_2',
 })
 
 async function start() {
