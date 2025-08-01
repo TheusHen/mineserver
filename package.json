@@ -1,32 +1,48 @@
 {
   "name": "mineserver",
   "version": "1.0.0",
-  "description": "",
+  "description": "Mineflared backend",
   "main": "app.js",
   "directories": {
     "test": "test"
   },
   "scripts": {
-    "start": "node app.js"
+    "start": "node app.js",
+    "test": "jest --runInBand"
+  },
+  "jest": {
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "test/root.test.js"
+    ]
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/TheusHen/mineserver.git"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "mineflared",
+    "backend",
+    "server",
+    "minecraft"
+  ],
+  "author": "TheusHen",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/TheusHen/mineserver/issues"
   },
   "homepage": "https://github.com/TheusHen/mineserver#readme",
   "dependencies": {
-    "axios": "^1.6.2",
+    "axios": "^1.11.0",
     "body-parser": "^2.2.0",
     "dotenv": "^16.6.1",
     "express": "^5.1.0",
     "fastify-cli": "^7.4.0",
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.18.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^6.3.4"
   }
 }

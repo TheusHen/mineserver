@@ -1,4 +1,8 @@
 # Mineserver
+<p>
+  <a href="https://mineflared.theushen.me"><img src="https://vercelbadge.vercel.app/api/TheusHen/Mineserver" alt="Build Status" /></a>
+  <a href="https://github.com/TheusHen/Mineserver"><img src="https://img.shields.io/github/license/TheusHen/Mineserver?style=flat-square" alt="License" /></a>
+</p>
 
 An Express-based API server to manage Minecraft server subdomains using Cloudflare DNS.
 

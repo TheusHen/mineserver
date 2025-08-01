@@ -1,0 +1,55 @@
+name: Test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      mongo:
+        image: mongo:latest
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd="mongosh --eval 'db.adminCommand(\"ping\")'"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Create .env file
+        run: |
+          echo "MONGO_URI=mongodb://localhost:27017" >> .env
+          echo "MONGODB_DATABASE_NAME=mineflared" >> .env
+          echo "CLOUDFLARE_API_TOKEN=dummy" >> .env
+          echo "CLOUDFLARE_ZONE_ID=dummy" >> .env
+          echo "GITHUB_CLIENT_ID=dummy" >> .env
+          echo "GITHUB_CLIENT_SECRET=dummy" >> .env
+          echo "JWT_SECRET=testsecret" >> .env
+          echo "JWT_EXPIRATION=1d" >> .env
+          echo "CLOUDFLARE_TTL=120" >> .env
+          echo "CLOUDFLARE_PROXIED=true" >> .env
+          echo "DOMAIN=mineflared.theushen.me" >> .env
+          echo "GITHUB_API_URL=https://api.github.com" >> .env
+          echo "GITHUB_OAUTH_URL=https://github.com/login/oauth" >> .env
+          echo "PORT=3000" >> .env
+
+      - name: Run tests
+        run: npm test
