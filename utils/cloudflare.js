@@ -4,21 +4,29 @@ const CLOUDFLARE_API_TOKEN = process.env.CLOUDFLARE_API_TOKEN;
 const CLOUDFLARE_ZONE_ID = process.env.CLOUDFLARE_ZONE_ID;
 const DOMAIN = process.env.DOMAIN;
 
+// Axios instance with timeout
+const axiosCF = axios.create({ timeout: 10000 });
+
 async function createOrUpdateSubdomain(username, ip, db) {
     const subdomain = `${username}.${DOMAIN}`;
 
-    const existingRecordsRes = await axios.get(
-        `https://api.cloudflare.com/client/v4/zones/${CLOUDFLARE_ZONE_ID}/dns_records`, {
-            headers: {
-                Authorization: `Bearer ${CLOUDFLARE_API_TOKEN}`,
-                'Content-Type': 'application/json'
-            },
-            params: {
-                type: 'A',
-                name: subdomain
+    let existingRecordsRes
+    try {
+        existingRecordsRes = await axiosCF.get(
+            `https://api.cloudflare.com/client/v4/zones/${CLOUDFLARE_ZONE_ID}/dns_records`, {
+                headers: {
+                    Authorization: `Bearer ${CLOUDFLARE_API_TOKEN}`,
+                    'Content-Type': 'application/json'
+                },
+                params: {
+                    type: 'A',
+                    name: subdomain
+                }
             }
-        }
-    );
+        );
+    } catch (err) {
+        throw new Error('Timeout ou erro ao consultar DNS no Cloudflare: ' + err.message)
+    }
 
     if (!existingRecordsRes.data.success) {
         throw new Error('Error querying existing DNS: ' + JSON.stringify(existingRecordsRes.data.errors));
@@ -27,7 +35,7 @@ async function createOrUpdateSubdomain(username, ip, db) {
     const existingRecords = existingRecordsRes.data.result;
     if (existingRecords.length > 0) {
         if (existingRecords[0].content !== ip) {
-            await axios.put(
+            await axiosCF.put(
                 `https://api.cloudflare.com/client/v4/zones/${CLOUDFLARE_ZONE_ID}/dns_records/${existingRecords[0].id}`,
                 {
                     type: 'A',
@@ -45,7 +53,7 @@ async function createOrUpdateSubdomain(username, ip, db) {
             );
         }
     } else {
-        await axios.post(
+        await axiosCF.post(
             `https://api.cloudflare.com/client/v4/zones/${CLOUDFLARE_ZONE_ID}/dns_records`,
             {
                 type: 'A',
@@ -71,21 +79,26 @@ async function createOrUpdateSubdomain(username, ip, db) {
 
 async function removeSubdomain(username) {
     const subdomain = `${username}.${DOMAIN}`;
-    const dnsRes = await axios.get(
-        `https://api.cloudflare.com/client/v4/zones/${CLOUDFLARE_ZONE_ID}/dns_records`, {
-            headers: {
-                Authorization: `Bearer ${CLOUDFLARE_API_TOKEN}`,
-                'Content-Type': 'application/json'
-            },
-            params: {
-                type: 'A',
-                name: subdomain
+    let dnsRes
+    try {
+        dnsRes = await axiosCF.get(
+            `https://api.cloudflare.com/client/v4/zones/${CLOUDFLARE_ZONE_ID}/dns_records`, {
+                headers: {
+                    Authorization: `Bearer ${CLOUDFLARE_API_TOKEN}`,
+                    'Content-Type': 'application/json'
+                },
+                params: {
+                    type: 'A',
+                    name: subdomain
+                }
             }
-        }
-    );
+        );
+    } catch (err) {
+        throw new Error('Timeout ou erro ao consultar DNS no Cloudflare: ' + err.message)
+    }
     if (dnsRes.data.success && dnsRes.data.result.length > 0) {
         for (const record of dnsRes.data.result) {
-            await axios.delete(
+            await axiosCF.delete(
                 `https://api.cloudflare.com/client/v4/zones/${CLOUDFLARE_ZONE_ID}/dns_records/${record.id}`,
                 {
                     headers: {
@@ -104,4 +117,3 @@ async function cleanupUserAndDNS(username, db) {
 }
 
 module.exports = { createOrUpdateSubdomain, removeSubdomain, cleanupUserAndDNS };
-
