@@ -13,6 +13,8 @@ Mineserver is a backend service that allows users to authenticate via GitHub and
 - User management with MongoDB
 - Server status verification
 - Automatic cleanup of inactive GitHub users
+- Secure CORS policies (only [mineflared.theushen.me](https://mineflared.theushen.me) can access most endpoints)
+- Access control by user IP and JWT
 
 ## Prerequisites
 
@@ -75,13 +77,24 @@ npm start
 
 ### User Management
 
-- `GET /api/user` - Get authenticated user information
-- `DELETE /delete` - Remove user account and DNS records
+- `GET /api/user` - Get authenticated user information (only accessible by the user's registered IP)
+- `DELETE /delete` - Remove user account and DNS records (only accessible by the user's registered IP)
 
 ### DNS Management
 
-- `POST /create` - Create or update subdomain
-- `GET /status` - Check server status
+- `POST /create` - Create or update subdomain (JWT required)
+- `GET /status` - Check server status (only accessible from https://mineflared.theushen.me)
+
+### Root
+
+- `GET /` - Health check endpoint (public)
+
+## Security
+
+- All endpoints implement strict CORS and access controls.
+- Most endpoints are only accessible via [mineflared.theushen.me](https://mineflared.theushen.me).
+- User and DNS management endpoints require proper authentication and IP verification.
+- Auth endpoints are open but protected against common attacks.
 
 ## Tests
 
@@ -95,6 +108,7 @@ npm test
 
 - `app.js` - Main application entry point
 - `routes/` - API route handlers
+- `middlewares/` - Authentication, CORS, and access control middlewares
 - `utils/` - Utility functions
 - `jobs/` - Background jobs
 - `test/` - Test files
