@@ -8,13 +8,8 @@
 > Actualy hosted in Render(free) future will be hosted in an Oracle Cloud instance.
 ```mermaid
 graph LR
-    R[Render (Free Tier)] --> O[Oracle Cloud (Always Free VPS)]
-    R:::host
-    O:::host
-
-    classDef host fill:#f0f0f0,stroke:#ccc,stroke-width:1px,font-size:14px;
+    R["Render Free Tier"] --> O["Oracle Cloud Always Free"]
 ```
-
 
 An Express-based API server to manage Minecraft server subdomains using Cloudflare DNS.
 
