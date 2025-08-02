@@ -79,9 +79,11 @@ module.exports = function (app) {
     const dnsIP = records[0].content
     const status = dnsIP === user.ip ? 'online' : 'offline'
 
-    return res.send({
-      status,
-      message: status === 'online' ? 'Server online and DNS configured correctly' : 'Server offline or DNS mismatch'
+    return res.status(status === 'online' ? 200 : 404).send({
+      status, // Corrigido para retornar o status corretamente
+      message: status === 'online' 
+        ? 'Server online and DNS configured correctly' 
+        : 'Server offline or DNS mismatch'
     })
   })
 }

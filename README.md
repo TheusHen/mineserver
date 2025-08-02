@@ -4,6 +4,18 @@
   <a href="https://github.com/TheusHen/Mineserver"><img src="https://img.shields.io/github/license/TheusHen/Mineserver?style=flat-square" alt="License" /></a>
 </p>
 
+> [!IMPORTANT]  
+> Actualy hosted in Render(free) future will be hosted in an Oracle Cloud instance.
+```mermaid
+graph LR
+    R[Render (Free Tier)] --> O[Oracle Cloud (Always Free VPS)]
+    R:::host
+    O:::host
+
+    classDef host fill:#f0f0f0,stroke:#ccc,stroke-width:1px,font-size:14px;
+```
+
+
 An Express-based API server to manage Minecraft server subdomains using Cloudflare DNS.
 
 ## Description

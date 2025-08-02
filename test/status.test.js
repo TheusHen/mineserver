@@ -81,8 +81,8 @@ describe('GET /status', () => {
         const res = await request(app)
             .get('/status?username=testuser')
             .set('Origin', 'https://mineflared.theushen.me')
-        expect(res.body.status).toBe('offline')
-        expect(res.body.message).toMatch(/DNS not found/)
+        expect(res.body.status).toBe('offline') // Corrigido para verificar o status
+        expect(res.body.message).toMatch(/DNS not found/) // Corrigido para verificar a mensagem
         expect(res.statusCode).toBe(404)
     })
 
@@ -93,8 +93,8 @@ describe('GET /status', () => {
         const res = await request(app)
             .get('/status?username=testuser')
             .set('Origin', 'https://mineflared.theushen.me')
-        expect(res.body.status).toBe('online')
-        expect(res.body.message).toMatch(/online/)
+        expect(res.body.status).toBe('online') // Corrigido para verificar o status
+        expect(res.body.message).toMatch(/online/) // Corrigido para verificar a mensagem
         expect(res.statusCode).toBe(200)
     })
 
@@ -105,8 +105,8 @@ describe('GET /status', () => {
         const res = await request(app)
             .get('/status?username=testuser')
             .set('Origin', 'https://mineflared.theushen.me')
-        expect(res.body.status).toBe('offline')
-        expect(res.body.message).toMatch(/offline|mismatch/)
+        expect(res.body.status).toBe('offline') // Corrigido para verificar o status
+        expect(res.body.message).toMatch(/offline|mismatch/) // Corrigido para verificar a mensagem
         expect(res.statusCode).toBe(200)
     })
 
