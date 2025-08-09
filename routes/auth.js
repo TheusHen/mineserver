@@ -3,7 +3,7 @@
 const cors = require('../middlewares/cors')
 const axios = require('axios')
 const jwt = require('jsonwebtoken')
-const { createOrUpdateSubdomain } = require('../utils/cloudflare')
+const { createOrUpdateDNS } = require('../utils/cloudflare')
 
 // Axios instance with timeout
 const axiosGH = axios.create({ timeout: 10000 })
@@ -21,18 +21,18 @@ async function getNewGithubToken(code) {
 
 module.exports = function (app) {
     app.get('/auth/github/login', cors(), (req, res) => {
-        const { callback, ip } = req.query
+        const { callback, ip, port, type } = req.query
         if (!ip || !callback) return res.status(400).send('Missing IP or callback')
         const clientId = process.env.GITHUB_CLIENT_ID
 
         const baseUrl = process.env.SERVER_URL || `http://localhost:${process.env.PORT || 3000}`
-        const redirectUri = `${baseUrl}/auth/github/callback?callback=${encodeURIComponent(callback)}&ip=${encodeURIComponent(ip)}`
+        const redirectUri = `${baseUrl}/auth/github/callback?callback=${encodeURIComponent(callback)}&ip=${encodeURIComponent(ip)}${port ? `&port=${encodeURIComponent(port)}` : ''}${type ? `&type=${encodeURIComponent(type)}` : ''}`
         const githubAuthUrl = `${process.env.GITHUB_OAUTH_URL}/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}`
         return res.redirect(githubAuthUrl)
     })
 
     app.get('/auth/github/callback', cors(), async (req, res) => {
-        const { code, callback, ip } = req.query
+        const { code, callback, ip, port, type } = req.query
         if (!code || !ip || !callback) return res.status(400).send('Missing code, IP or callback')
 
         let access_token
@@ -68,10 +68,12 @@ module.exports = function (app) {
                 { $set: { username, githubId, token: jwtToken, ip, lastLogin: new Date(), github_token: access_token } },
                 { upsert: true }
             )
-            console.log('[auth/github/callback] Creating/updating subdomain...')
-            await createOrUpdateSubdomain(username, ip, db)
+
+            console.log('[auth/github/callback] Creating/updating DNS record...')
+            await createOrUpdateDNS(username, ip, type || 'java', port || 25565, db)
+
         } catch (err) {
-            console.error('Error creating subdomain or updating Mongo:', err)
+            console.error('Error creating DNS or updating Mongo:', err)
         }
 
         return res.redirect(`${callback}?token=${jwtToken}`)
