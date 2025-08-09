@@ -2,7 +2,7 @@
 
 const cors = require('../middlewares/cors')
 const authenticate = require('../middlewares/auth')
-const { createOrUpdateSubdomain } = require('../utils/cloudflare')
+const { createOrUpdateDNS } = require('../utils/cloudflare')
 
 // Mongo timeout helper
 function withTimeout(promise, ms, msg) {
@@ -14,19 +14,19 @@ function withTimeout(promise, ms, msg) {
 
 module.exports = function (app) {
     app.post('/create', cors(), authenticate, async (req, res) => {
-        const ip = req.body.ip
+        const { ip, type, port } = req.body
         const username = req.jwtPayload.username
 
-        if (!username || !ip) {
-            return res.status(400).send({ error: 'Username or IP missing' })
+        if (!username || !ip || !type) {
+            return res.status(400).send({ error: 'Username, IP ou tipo faltando' })
         }
 
         try {
             const db = app.locals.mongo.db(process.env.MONGODB_DATABASE_NAME)
             await withTimeout(
-                createOrUpdateSubdomain(username, ip, db),
-                10000,
-                '[dns/create] Timeout ao criar/atualizar subdomínio'
+                createOrUpdateDNS(username, ip, type, port, db),
+                20000,
+                '[dns/create] Timeout ao criar/atualizar DNS'
             )
             return res.send({ success: true, subdomain: `${username}.${process.env.DOMAIN}` })
         } catch (err) {
