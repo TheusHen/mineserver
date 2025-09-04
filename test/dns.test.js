@@ -4,7 +4,7 @@ const dnsRoute = require('../routes/dns')
 const jwt = require('jsonwebtoken')
 
 jest.mock('../utils/cloudflare', () => ({
-    createOrUpdateSubdomain: jest.fn().mockResolvedValue()
+    createOrUpdateDNS: jest.fn().mockResolvedValue()
 }))
 
 describe('POST /create', () => {
@@ -49,19 +49,19 @@ describe('POST /create', () => {
         const res = await request(app)
             .post('/create')
             .set('Authorization', `Bearer ${token}`)
-            .send({ ip: '1.2.3.4' })
+            .send({ ip: '1.2.3.4', type: 'java', port: 25565 })
         expect(res.statusCode).toBe(200)
         expect(res.body).toHaveProperty('success', true)
         expect(res.body).toHaveProperty('subdomain')
     })
 
     it('should handle subdomain creation errors', async () => {
-        const { createOrUpdateSubdomain } = require('../utils/cloudflare')
-        createOrUpdateSubdomain.mockRejectedValueOnce(new Error('fail'))
+        const { createOrUpdateDNS } = require('../utils/cloudflare')
+        createOrUpdateDNS.mockRejectedValueOnce(new Error('fail'))
         const res = await request(app)
             .post('/create')
             .set('Authorization', `Bearer ${token}`)
-            .send({ ip: '1.2.3.4' })
+            .send({ ip: '1.2.3.4', type: 'java' })
         expect(res.statusCode).toBe(500)
     })
 })
