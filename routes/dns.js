@@ -28,7 +28,21 @@ module.exports = function (app) {
                 20000,
                 '[dns/create] Timeout ao criar/atualizar DNS'
             )
-            return res.send({ success: true, subdomain: `${username}.${process.env.DOMAIN}` })
+            return res.send({ 
+                success: true, 
+                subdomain: `${username}.${process.env.DOMAIN}`,
+                connection_info: type === 'java' 
+                    ? {
+                        server_address: `${username}.${process.env.DOMAIN}`,
+                        note: "For Minecraft Java Edition, just use the server address above. The port will be automatically detected via SRV record."
+                      }
+                    : {
+                        server_address: `${username}.${process.env.DOMAIN}`,
+                        port: parseInt(port, 10) || (type === 'bedrock' ? 19132 : 25565),
+                        full_address: `${username}.${process.env.DOMAIN}:${parseInt(port, 10) || (type === 'bedrock' ? 19132 : 25565)}`,
+                        note: "For Minecraft Bedrock Edition, use the full address with port, or enter server address and port separately."
+                      }
+            })
         } catch (err) {
             return res.status(500).send({ error: err.message })
         }

@@ -4,7 +4,7 @@ const dnsRoute = require('../routes/dns')
 const jwt = require('jsonwebtoken')
 
 jest.mock('../utils/cloudflare', () => ({
-    createOrUpdateSubdomain: jest.fn().mockResolvedValue()
+    createOrUpdateDNS: jest.fn().mockResolvedValue()
 }))
 
 describe('POST /create', () => {
@@ -49,19 +49,43 @@ describe('POST /create', () => {
         const res = await request(app)
             .post('/create')
             .set('Authorization', `Bearer ${token}`)
-            .send({ ip: '1.2.3.4' })
+            .send({ ip: '1.2.3.4', type: 'java', port: 25565 })
         expect(res.statusCode).toBe(200)
         expect(res.body).toHaveProperty('success', true)
         expect(res.body).toHaveProperty('subdomain')
+        expect(res.body).toHaveProperty('connection_info')
+        expect(res.body.connection_info).toHaveProperty('server_address')
     })
 
-    it('should handle subdomain creation errors', async () => {
-        const { createOrUpdateSubdomain } = require('../utils/cloudflare')
-        createOrUpdateSubdomain.mockRejectedValueOnce(new Error('fail'))
+    it('should provide correct connection info for Java servers', async () => {
         const res = await request(app)
             .post('/create')
             .set('Authorization', `Bearer ${token}`)
-            .send({ ip: '1.2.3.4' })
+            .send({ ip: '1.2.3.4', type: 'java', port: 25566 })
+        expect(res.statusCode).toBe(200)
+        expect(res.body.connection_info.server_address).toBe('testuser.mineflared.theushen.me')
+        expect(res.body.connection_info.note).toContain('SRV record')
+    })
+
+    it('should provide correct connection info for Bedrock servers', async () => {
+        const res = await request(app)
+            .post('/create')
+            .set('Authorization', `Bearer ${token}`)
+            .send({ ip: '1.2.3.4', type: 'bedrock', port: 19132 })
+        expect(res.statusCode).toBe(200)
+        expect(res.body.connection_info.server_address).toBe('testuser.mineflared.theushen.me')
+        expect(res.body.connection_info.port).toBe(19132)
+        expect(res.body.connection_info.full_address).toBe('testuser.mineflared.theushen.me:19132')
+        expect(res.body.connection_info.note).toContain('Bedrock Edition')
+    })
+
+    it('should handle subdomain creation errors', async () => {
+        const { createOrUpdateDNS } = require('../utils/cloudflare')
+        createOrUpdateDNS.mockRejectedValueOnce(new Error('fail'))
+        const res = await request(app)
+            .post('/create')
+            .set('Authorization', `Bearer ${token}`)
+            .send({ ip: '1.2.3.4', type: 'java' })
         expect(res.statusCode).toBe(500)
     })
 })

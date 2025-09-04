@@ -31,7 +31,7 @@ async function createOrUpdateDNS(username, ip, type, port, db) {
     if (type === "java") {
         const recordsA = await getDnsRecords('A', subdomain)
         await deleteRecords(recordsA)
-        const recordsSRV = await getDnsRecords('SRV', subdomain)
+        const recordsSRV = await getDnsRecords('SRV', `_minecraft._tcp.${subdomain}`)
         await deleteRecords(recordsSRV)
 
         // Create A record
@@ -46,15 +46,8 @@ async function createOrUpdateDNS(username, ip, type, port, db) {
         // Create SRV record
         await api.post('/dns_records', {
             type: 'SRV',
-            data: {
-                service: "_minecraft",
-                proto: "_tcp",
-                name: subdomain,
-                priority: 0,
-                weight: 5,
-                port: parseInt(port, 10) || 25565,
-                target: subdomain
-            },
+            name: `_minecraft._tcp.${subdomain}`,
+            content: `0 5 ${parseInt(port, 10) || 25565} ${subdomain}`,
             ttl: 120,
             proxied: false
         })
